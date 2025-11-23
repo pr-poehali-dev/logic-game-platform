@@ -19,6 +19,7 @@ interface Task {
   question: string;
   options: string[];
   correctAnswer: number;
+  points: number;
   solved?: boolean;
 }
 
@@ -33,6 +34,7 @@ const mockTasks: Task[] = [
     question: 'Какое число следующее в последовательности: 2, 4, 8, 16, ?',
     options: ['20', '24', '32', '64'],
     correctAnswer: 2,
+    points: 10,
   },
   {
     id: 2,
@@ -44,6 +46,7 @@ const mockTasks: Task[] = [
     question: 'Если 5 лет назад Ане было вдвое больше лет, чем Борису, а сейчас им вместе 35 лет, сколько лет Борису?',
     options: ['10', '12', '15', '18'],
     correctAnswer: 1,
+    points: 25,
   },
   {
     id: 3,
@@ -55,6 +58,7 @@ const mockTasks: Task[] = [
     question: 'Если A=true, B=false, C=true, чему равно (A AND B) OR (NOT B AND C)?',
     options: ['true', 'false', 'undefined', 'null'],
     correctAnswer: 0,
+    points: 50,
   },
   {
     id: 4,
@@ -66,6 +70,7 @@ const mockTasks: Task[] = [
     question: 'Фермеру нужно переправить волка, козу и капусту. В лодке помещается только один предмет. Сколько минимально рейсов нужно?',
     options: ['5', '7', '9', '11'],
     correctAnswer: 1,
+    points: 30,
   },
   {
     id: 5,
@@ -77,6 +82,7 @@ const mockTasks: Task[] = [
     question: 'Сколько всего квадратов разного размера на шахматной доске 8x8?',
     options: ['64', '204', '240', '296'],
     correctAnswer: 1,
+    points: 15,
   },
   {
     id: 6,
@@ -88,6 +94,7 @@ const mockTasks: Task[] = [
     question: 'Есть 12 монет, одна фальшивая (легче). Сколько минимум взвешиваний на весах нужно?',
     options: ['2', '3', '4', '5'],
     correctAnswer: 1,
+    points: 50,
   },
 ];
 
@@ -101,6 +108,7 @@ const Index = () => {
   const [showResult, setShowResult] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [userProgress, setUserProgress] = useState(33);
+  const [totalPoints, setTotalPoints] = useState(0);
   const { toast } = useToast();
 
   const categories = Array.from(new Set(tasks.map(t => t.category)));
@@ -135,12 +143,13 @@ const Index = () => {
 
     if (isCorrect && selectedTask) {
       setTasks(prev => prev.map(t => t.id === selectedTask.id ? { ...t, solved: true } : t));
+      setTotalPoints(prev => prev + selectedTask.points);
       const newProgress = Math.min(100, userProgress + 10);
       setUserProgress(newProgress);
       
       toast({
         title: '🎉 Правильно!',
-        description: 'Отличная работа! Продолжайте в том же духе.',
+        description: `+${selectedTask.points} ⭐ | Отличная работа!`,
       });
     } else {
       toast({
@@ -175,9 +184,15 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2 text-sm">
-                <Icon name="Trophy" className="text-accent" size={20} />
-                <span className="font-semibold">{solvedCount}/{tasks.length}</span>
+              <div className="hidden md:flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-lg">
+                  <Icon name="Star" className="text-accent" size={18} />
+                  <span className="font-semibold text-sm">{totalPoints}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Icon name="Trophy" className="text-secondary" size={18} />
+                  <span className="font-semibold">{solvedCount}/{tasks.length}</span>
+                </div>
               </div>
               <Button size="sm" variant="outline">
                 <Icon name="User" size={16} className="mr-2" />
@@ -256,11 +271,17 @@ const Index = () => {
             >
               <CardHeader>
                 <div className="flex items-start justify-between mb-2">
-                  <Badge className={getDifficultyColor(task.difficulty)}>
-                    {task.difficulty === 'easy' && 'Легко'}
-                    {task.difficulty === 'medium' && 'Средне'}
-                    {task.difficulty === 'hard' && 'Сложно'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getDifficultyColor(task.difficulty)}>
+                      {task.difficulty === 'easy' && 'Легко'}
+                      {task.difficulty === 'medium' && 'Средне'}
+                      {task.difficulty === 'hard' && 'Сложно'}
+                    </Badge>
+                    <div className="flex items-center gap-1 text-accent font-semibold text-sm">
+                      <Icon name="Star" size={14} />
+                      <span>{task.points}</span>
+                    </div>
+                  </div>
                   {task.solved && (
                     <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
                       <Icon name="Check" size={16} className="text-secondary-foreground" />
