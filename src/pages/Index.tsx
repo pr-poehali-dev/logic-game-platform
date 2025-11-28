@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
-import { getTasks, type Task } from '@/lib/mockData';
+import { getTasks, getDailyChallenge, type Task } from '@/lib/mockData';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -21,9 +21,36 @@ const Index = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [userProgress, setUserProgress] = useState(33);
   const [totalPoints, setTotalPoints] = useState(0);
   const { toast } = useToast();
+
+  const dailyChallenge = getDailyChallenge();
+  const [dailyCompleted, setDailyCompleted] = useState(false);
+  const [todayTasksSolved, setTodayTasksSolved] = useState(2);
+  const [timeRemaining, setTimeRemaining] = useState(dailyChallenge.timeLimit);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getTimeUntilMidnight = () => {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    const diff = midnight.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}ч ${minutes}м`;
+  };
 
   const categories = Array.from(new Set(tasks.map(t => t.category)));
 
@@ -124,14 +151,82 @@ const Index = () => {
             <p className="text-muted-foreground text-lg">Решайте задачи, отслеживайте прогресс, совершенствуйтесь каждый день</p>
           </div>
 
-          <Card className="max-w-2xl mx-auto">
+          <Card className="max-w-4xl mx-auto bg-gradient-to-br from-primary via-primary/90 to-accent border-0 shadow-2xl">
             <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">Ваш прогресс</span>
-                  <span className="text-muted-foreground">{userProgress}%</span>
+              <div className="space-y-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Icon name="Calendar" className="text-primary-foreground" size={24} />
+                      <h3 className="text-2xl font-bold text-primary-foreground">Задача дня</h3>
+                    </div>
+                    <p className="text-primary-foreground/90 max-w-2xl">
+                      Ежедневная порция мозгового штурма. Сегодня, {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}, попробуйте решить эту головоломку. На решение у вас есть 5 минут!
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-primary-foreground/70 mb-1">Следующая задача через</div>
+                    <div className="text-2xl font-bold text-primary-foreground">{getTimeUntilMidnight()}</div>
+                  </div>
                 </div>
-                <Progress value={userProgress} className="h-3" />
+
+                {dailyCompleted ? (
+                  <div className="bg-background/10 backdrop-blur rounded-xl p-6 border border-primary-foreground/20">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-background/20 rounded-full flex items-center justify-center">
+                        <Icon name="CheckCircle2" className="text-primary-foreground" size={32} />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold text-primary-foreground mb-1">Отличная работа!</h4>
+                        <p className="text-primary-foreground/80">За сегодня вы решили {todayTasksSolved} задачи. Возвращайтесь завтра за новой порцией!</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-background/10 backdrop-blur rounded-xl p-6 border border-primary-foreground/20 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xl font-bold text-primary-foreground mb-1">{dailyChallenge.task.title}</h4>
+                        <p className="text-primary-foreground/80 text-sm">{dailyChallenge.task.description}</p>
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-20 h-20 bg-background/20 rounded-full flex items-center justify-center border-4 border-primary-foreground/30">
+                          <span className="text-2xl font-bold text-primary-foreground">{formatTime(timeRemaining)}</span>
+                        </div>
+                        <Badge variant="secondary" className="bg-background/20 text-primary-foreground border-primary-foreground/20">
+                          +{dailyChallenge.task.points} ⭐
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => handleTaskClick(dailyChallenge.task)}
+                      className="w-full bg-background text-primary hover:bg-background/90 font-semibold"
+                      size="lg"
+                    >
+                      <Icon name="Zap" size={20} className="mr-2" />
+                      Решить задачу дня
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-4 border-t border-primary-foreground/20">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate('/marathon')}
+                    className="text-primary-foreground hover:bg-background/10"
+                  >
+                    <Icon name="Trophy" size={18} className="mr-2" />
+                    Марафон задач
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate('/achievements')}
+                    className="text-primary-foreground hover:bg-background/10"
+                  >
+                    <Icon name="Award" size={18} className="mr-2" />
+                    Мои достижения
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

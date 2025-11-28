@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Icon from '@/components/ui/icon';
-import { getTasks, type Task } from '@/lib/mockData';
+import { getTasks, getMedals, type Task } from '@/lib/mockData';
 
 const Profile = () => {
   const navigate = useNavigate();
   const tasks = getTasks();
+  const medals = getMedals();
+  const earnedMedals = medals.filter(m => m.earnedDate);
   
   const [user] = useState({
     name: 'Алексей Иванов',
@@ -97,6 +99,39 @@ const Profile = () => {
                     </div>
                   ))}
                 </div>
+
+                {earnedMedals.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <Icon name="Award" size={18} />
+                        Медали и достижения
+                      </h3>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => navigate('/achievements')}
+                      >
+                        Все достижения
+                        <Icon name="ChevronRight" size={16} className="ml-1" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                      {earnedMedals.map((medal) => (
+                        <div 
+                          key={medal.id}
+                          className="flex-shrink-0 p-3 rounded-lg bg-accent/10 border border-accent/20 hover:bg-accent/20 transition-colors cursor-pointer"
+                          onClick={() => navigate('/achievements')}
+                        >
+                          <div className="text-3xl mb-1 text-center">{medal.icon}</div>
+                          <div className="text-xs text-center font-medium whitespace-nowrap">
+                            {medal.name.length > 15 ? medal.name.substring(0, 15) + '...' : medal.name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
